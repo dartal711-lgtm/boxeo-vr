@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>VR Boxing - Puntería Total</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
+</head>
+<body>
+
+    <a-scene physics="debug: false; gravity: -9.8; iterations: 20">
+        
+        <a-sky color="#111"></a-sky>
+
+        <a-box static-body position="0 -2 0" width="100" height="4" depth="100" color="#333"></a-box>
+
+        <a-entity id="contenedor"></a-entity>
+
+        <a-entity id="rig" position="0 0 0">
+            <a-entity id="camera" camera look-controls wasd-controls="acceleration: 20" position="0 1.6 0">
+                <a-cursor color="yellow"></a-cursor>
+            </a-entity>
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        const contenedor = document.querySelector('#contenedor');
+        const cameraEl = document.querySelector('#camera');
+
+        function crearSaco() {
+            const nuevoSaco = document.createElement('a-box');
+            nuevoSaco.setAttribute('position', '0 1.5 -5');
+            nuevoSaco.setAttribute('width', '0.6');
+            nuevoSaco.setAttribute('height', '1.8');
+            nuevoSaco.setAttribute('color', 'red');
+
+            nuevoSaco.addEventListener('click', function () {
+                // 1. Convertir en objeto físico
+                nuevoSaco.setAttribute('dynamic-body', { shape: 'box', mass: 5 });
+
+                setTimeout(() => {
+                    if (nuevoSaco.body) {
+                        // --- LÓGICA DE DIRECCIÓN ---
+                        // Obtenemos la rotación de la cámara
+                        const rotation = cameraEl.getAttribute('rotation');
+                        
+                        // Convertimos grados a radianes para la matemática
+                        const angleY = rotation.y * (Math.PI / 180);
+                        const angleX = rotation.x * (Math.PI / 180);
+
+                        // Calculamos el vector de fuerza basado en hacia dónde miras
+                        // X: Movimiento lateral
+                        // Y: Movimiento arriba/abajo
+                        // Z: Profundidad
+                        const fuerzaX = -Math.sin(angleY) * 20;
+                        const fuerzaY = Math.sin(angleX) * 20 + 5; // +5 para que siempre suba un poco
+                        const fuerzaZ = -Math.cos(angleY) * 20;
+
+                        const impulso = new CANNON.Vec3(fuerzaX, fuerzaY, fuerzaZ);
+                        nuevoSaco.body.applyImpulse(impulso, new CANNON.Vec3(0, 0, 0));
+                    }
+                }, 20);
+
+                // 2. Limpieza y respawn
+                setTimeout(() => {
+                    if (nuevoSaco.parentNode) {
+                        contenedor.removeChild(nuevoSaco);
+                        crearSaco();
+                    }
+                }, 3000);
+            }, { once: true });
+
+            contenedor.appendChild(nuevoSaco);
+        }
+
+        crearSaco();
+    </script>
+</body>
+</html>
